@@ -15,6 +15,8 @@ pub enum ClientMessage {
         original_msg_id: Uuid,
         content: String,
     },
+    /// Acknowledgment that a message was received by the client.
+    MessageReceived { msg_id: Uuid },
 }
 
 /// Messages sent from the server to the client.
@@ -35,6 +37,8 @@ pub enum ServerMessage {
     Private { id: Uuid, content: String },
     /// Confirmation that a private message was delivered.
     MessageDelivered { msg_id: Uuid },
+    /// Acknowledgment that a message was received by a client.
+    MessageAcknowledged { msg_id: Uuid, client_id: Uuid },
     /// An error message from the server.
     Error { message: String },
 }

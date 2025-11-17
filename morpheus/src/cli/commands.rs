@@ -32,9 +32,9 @@ pub fn parse_command(input: &str) -> Command {
     let command = parts.next().unwrap_or("").to_lowercase();
 
     match command.as_str() {
-        "/help" | "help" => Command::Help,
-        "/exit" | "exit" => Command::Exit,
-        "/list" | "ls" => {
+        "/help" | "/h" => Command::Help,
+        "/exit" | "/e" => Command::Exit,
+        "/list" | "/l" => {
             let scope = parts.next().unwrap_or("all");
             match scope {
                 "all" => Command::List(ListScope::All),
@@ -42,7 +42,7 @@ pub fn parse_command(input: &str) -> Command {
                 topic => Command::List(ListScope::Topic(topic.to_string())),
             }
         }
-        "/global" | "g" => {
+        "/global" | "/g" => {
             let content = parts.collect::<Vec<&str>>().join(" ");
             if content.is_empty() {
                 Command::Unknown("Global message content cannot be empty.".to_string())
@@ -50,7 +50,7 @@ pub fn parse_command(input: &str) -> Command {
                 Command::Global(content)
             }
         }
-        "/topic" | "t" => {
+        "/topic" | "/t" => {
             let topic = parts.next().unwrap_or("");
             let content = parts.next().unwrap_or("");
             if topic.is_empty() || content.is_empty() {
@@ -62,7 +62,7 @@ pub fn parse_command(input: &str) -> Command {
                 }
             }
         }
-        "/private" | "p" => {
+        "/private" | "/p" => {
             let client_id_str = parts.next().unwrap_or("");
             let content = parts.next().unwrap_or("");
             if client_id_str.is_empty() || content.is_empty() {
@@ -89,32 +89,32 @@ mod tests {
     #[test]
     fn test_parse_help() {
         assert_eq!(parse_command("/help"), Command::Help);
-        assert_eq!(parse_command("help"), Command::Help);
+        assert_eq!(parse_command("/h"), Command::Help);
     }
 
     #[test]
     fn test_parse_exit() {
         assert_eq!(parse_command("/exit"), Command::Exit);
-        assert_eq!(parse_command("exit"), Command::Exit);
+        assert_eq!(parse_command("/e"), Command::Exit);
     }
 
     #[test]
     fn test_parse_list() {
         assert_eq!(parse_command("/list"), Command::List(ListScope::All));
-        assert_eq!(parse_command("ls"), Command::List(ListScope::All));
+        assert_eq!(parse_command("/l"), Command::List(ListScope::All));
         assert_eq!(parse_command("/list all"), Command::List(ListScope::All));
-        assert_eq!(parse_command("ls all"), Command::List(ListScope::All));
+        assert_eq!(parse_command("/l all"), Command::List(ListScope::All));
         assert_eq!(
             parse_command("/list topics"),
             Command::List(ListScope::Topics)
         );
-        assert_eq!(parse_command("ls topics"), Command::List(ListScope::Topics));
+        assert_eq!(parse_command("/l topics"), Command::List(ListScope::Topics));
         assert_eq!(
             parse_command("/list general"),
             Command::List(ListScope::Topic("general".to_string()))
         );
         assert_eq!(
-            parse_command("ls general"),
+            parse_command("/l general"),
             Command::List(ListScope::Topic("general".to_string()))
         );
     }
@@ -126,7 +126,7 @@ mod tests {
             Command::Global("Hello world".to_string())
         );
         assert_eq!(
-            parse_command("g Hello world"),
+            parse_command("/g Hello world"),
             Command::Global("Hello world".to_string())
         );
         assert_eq!(
@@ -145,7 +145,7 @@ mod tests {
             }
         );
         assert_eq!(
-            parse_command("t general Hello there"),
+            parse_command("/t general Hello there"),
             Command::Topic {
                 topic: "general".to_string(),
                 content: "Hello there".to_string()
@@ -169,7 +169,7 @@ mod tests {
             }
         );
 
-        let input_short = format!("p {} Hello there", client_id);
+        let input_short = format!("/p {} Hello there", client_id);
         assert_eq!(
             parse_command(&input_short),
             Command::Private {

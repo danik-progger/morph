@@ -71,7 +71,7 @@ impl ClientManager {
     ) {
         let clients = self.storage.get_clients_in_topic(topic_name);
         for client in clients {
-            if exclude_id.map_or(true, |id| client.id != id) {
+            if exclude_id != Some(client.id) {
                 self.send_message_to_client(&client.id, message.clone())
                     .await;
             }
@@ -117,6 +117,13 @@ impl ClientManager {
 
     pub fn get_all_topics(&self) -> Vec<String> {
         self.storage.get_all_topics()
+    }
+
+    /// Handles a message acknowledgment from a client.
+    pub async fn handle_message_acknowledgment(&self, client_id: Uuid, msg_id: Uuid) {
+        println!("\n[SYSTEM] Message {} acknowledged by client {}.", msg_id, client_id);
+        // Optionally, you could send a ServerMessage::MessageAcknowledged back to the client
+        // or to other interested parties here.
     }
 }
 

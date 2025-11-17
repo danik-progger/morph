@@ -32,13 +32,14 @@ impl Server {
             match commands::parse_command(line.trim()) {
                 commands::Command::Help => {
                     let help_text = r#"Morpheus Server Commands:
-/list all                - List all connected clients
-/list topics             - List all active topics
-/list <topic>            - List clients in a specific topic
-/global <msg>            - Send a message to all clients
-/topic <topic> <msg>     - Send a message to a topic
-/private <client_id> <msg> - Send a private message
-/exit                    - Shutdown the server"#;
+/h, /hellp                      - List all commands
+/l, /list     all               - List all connected clients
+/l, /list     topics            - List all active topics
+/l, /list     <topic>           - List clients in a specific topic
+/g, /global   <msg>             - Send a message to all clients
+/t, /topic    <topic> <msg>     - Send a message to a topic
+/p, /private  <client_id> <msg> - Send a private message
+/e, /exit                       - Shutdown the server"#;
                     ui::print_system_message(help_text);
                 }
                 commands::Command::List(scope) => self.handle_list_command(scope),

@@ -40,7 +40,10 @@ impl Client {
             tokio::select! {
                 // Handle incoming messages from the server
                 Some(Ok(msg)) = self.connection.recv() => {
-                    ui::print_server_message(&msg);
+                    if let Some(msg_id) = ui::print_server_message(&msg) {
+                        // Send acknowledgment back to the server
+                        self.connection.send(ClientMessage::MessageReceived { msg_id }).await?;
+                    }
                 },
                 // Handle user input from the command line
                 result = stdin.read_line(&mut input_buf) => {

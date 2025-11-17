@@ -61,6 +61,9 @@ async fn handle_message(client_id: &Uuid, msg: Message, client_manager: &Arc<Cli
                         original_msg_id, client_id, content
                     );
                 }
+                ClientMessage::MessageReceived { msg_id } => {
+                    client_manager.handle_message_acknowledgment(*client_id, msg_id).await;
+                }
             },
             Err(e) => {
                 eprintln!(
