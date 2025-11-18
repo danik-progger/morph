@@ -9,7 +9,7 @@ use uuid::Uuid;
 pub struct Client {
     pub id: Uuid,
     pub topic: Option<String>,
-    pub sender: mpsc::UnboundedSender<ServerMessage>,
+    pub sender: mpsc::Sender<ServerMessage>,
 }
 
 /// A trait defining the contract for storing client and topic information.

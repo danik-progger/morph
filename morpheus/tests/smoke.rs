@@ -38,7 +38,8 @@ async fn start_server() -> u16 {
                 })
             });
 
-        let warp_server = warp::serve(ws_route).run(addr_clone.parse::<std::net::SocketAddr>().unwrap());
+        let warp_server =
+            warp::serve(ws_route).run(addr_clone.parse::<std::net::SocketAddr>().unwrap());
         warp_server.await;
     });
 
@@ -110,15 +111,13 @@ async fn test_10_clients_connect(port: u16) -> Result<()> {
     for i in 0..10 {
         let url = url.clone();
         let handle = tokio::spawn(async move {
-            let (mut ws_stream, _) = connect_async(&url)
-                .await
-                .expect("Failed to connect client");
+            let (mut ws_stream, _) = connect_async(&url).await.expect("Failed to connect client");
             println!("Client {} connected", i);
 
             let topic = format!("topic-{}", i);
             let connect_msg = ClientMessage::Connect { topic };
-            let connect_msg_str = serde_json::to_string(&connect_msg)
-                .expect("Failed to serialize message");
+            let connect_msg_str =
+                serde_json::to_string(&connect_msg).expect("Failed to serialize message");
             ws_stream
                 .send(Message::Text(connect_msg_str))
                 .await

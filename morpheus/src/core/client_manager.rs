@@ -1,9 +1,9 @@
 use crate::{
+    cli::ui,
     core::{
         msg::ServerMessage,
         storage::{Client, Storage},
     },
-    cli::ui,
 };
 use futures_util::{stream::SplitSink, SinkExt};
 use std::sync::Arc;
@@ -25,22 +25,35 @@ impl ClientManager {
     /// Registers a new client, returning their unique ID.
     pub fn add_client(&self, mut sender: SplitSink<WebSocket, Message>) -> Uuid {
         let client_id = Uuid::new_v4();
-        let (tx, mut rx) = mpsc::unbounded_channel::<ServerMessage>();
+        let (tx, mut rx) = mpsc::channel::<ServerMessage>(100);
 
         // This task forwards messages from the manager to the client's WebSocket connection.
         tokio::spawn(async move {
-            while let Some(message) = rx.recv().await {
-                crate::log::middleware::log_outgoing(&message);
-                let msg_str = serde_json::to_string(&message).unwrap_or_else(|e| {
-                    eprintln!("Failed to serialize message: {}", e);
-                    // Create a temporary error message if serialization fails
-                    "{\"type\":\"Error\",\"message\":\"Internal server error: could not serialize message.\"}".to_string()
-                });
+            loop {
+                tokio::select! {
+                    message = rx.recv() => {
+                        match message {
+                            Some(message) => {
+                                crate::log::middleware::log_outgoing(&message);
+                                let msg_str = match serde_json::to_string(&message) {
+                                    Ok(s) => s,
+                                    Err(e) => {
+                                        eprintln!("Failed to serialize message: {}", e);
+                                        continue;
+                                    }
+                                };
 
-                if sender.send(Message::text(msg_str)).await.is_err() {
-                    // The client has disconnected. The read-half of the
-                    // socket will detect this and trigger the cleanup.
-                    break;
+                                if sender.send(Message::text(msg_str)).await.is_err() {
+                                    // The client has disconnected.
+                                    break;
+                                }
+                            }
+                            None => {
+                                // Channel closed, client disconnected
+                                break;
+                            }
+                        }
+                    }
                 }
             }
         });
@@ -99,10 +112,7 @@ impl ClientManager {
     /// Helper to send a message to a client.
     async fn send_message_to_client(&self, client_id: &Uuid, message: ServerMessage) {
         if let Some(client) = self.storage.get_client(client_id) {
-            if client.sender.send(message).is_err() {
-                // The receiver is dropped, meaning the client is disconnected.
-                // The cleanup is handled by the `remove_client` call in the ws::handler.
-            }
+            if client.sender.send(message).await.is_err() {}
         }
     }
 
@@ -137,9 +147,9 @@ impl ClientManager {
 
 #[cfg(test)]
 impl ClientManager {
-    pub fn add_test_client(&self) -> (Uuid, mpsc::UnboundedReceiver<ServerMessage>) {
+    pub fn add_test_client(&self) -> (Uuid, mpsc::Receiver<ServerMessage>) {
         let client_id = Uuid::new_v4();
-        let (tx, rx) = mpsc::unbounded_channel();
+        let (tx, rx) = mpsc::channel(100);
         let client = Client {
             id: client_id,
             topic: None,
@@ -154,10 +164,10 @@ impl ClientManager {
 mod tests {
     use super::*;
     use crate::core::storage::InMemoryStorage;
-    use tokio::sync::mpsc::UnboundedReceiver;
+    use tokio::sync::mpsc::Receiver;
 
     // Helper to create a mock client and return its ID and receiver
-    fn setup_mock_client(manager: &ClientManager) -> (Uuid, UnboundedReceiver<ServerMessage>) {
+    fn setup_mock_client(manager: &ClientManager) -> (Uuid, Receiver<ServerMessage>) {
         manager.add_test_client()
     }
 

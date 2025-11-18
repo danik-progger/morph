@@ -19,8 +19,7 @@ pub fn init_file_logger() {
 }
 
 pub fn log_incoming(client_id: &uuid::Uuid, msg: &ClientMessage) {
-    let msg_json =
-        serde_json::to_string_pretty(msg).unwrap_or_else(|_| "Failed to serialize".to_string());
+    let msg_json = serde_json::to_string(msg).unwrap_or_else(|_| "Failed to serialize".to_string());
     info!
         (target: "morpheus::log",
         "INCOMING from [{}]:\n{}",
@@ -30,8 +29,7 @@ pub fn log_incoming(client_id: &uuid::Uuid, msg: &ClientMessage) {
 }
 
 pub fn log_outgoing(msg: &ServerMessage) {
-    let msg_json =
-        serde_json::to_string_pretty(msg).unwrap_or_else(|_| "Failed to serialize".to_string());
+    let msg_json = serde_json::to_string(msg).unwrap_or_else(|_| "Failed to serialize".to_string());
     info!(target: "morpheus::log", "OUTGOING:\n{}", msg_json);
 }
 

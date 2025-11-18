@@ -64,7 +64,8 @@ impl Server {
         match scope {
             commands::ListScope::All => {
                 println!("\nAll connected clients:");
-                for client in self.client_manager.get_all_clients() {
+                let clients = self.client_manager.get_all_clients();
+                for client in clients {
                     println!(
                         "- {} (Topic: {})",
                         client.id,

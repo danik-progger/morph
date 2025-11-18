@@ -41,7 +41,10 @@ async fn handle_message(client_id: &Uuid, msg: Message, client_manager: &Arc<Cli
                         client_manager.subscribe_client_to_topic(client_id, topic);
                     }
                     ClientMessage::Message { topic, content } => {
-                        println!("Client {} sent message to topic '{}'", client_id, topic);
+                        println!(
+                            "Client {} sent message to topic '{}'\n'{}'",
+                            client_id, topic, content
+                        );
                         let message = ServerMessage::Topic {
                             id: Uuid::new_v4(),
                             topic: topic.clone(),

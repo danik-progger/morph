@@ -1,8 +1,8 @@
+use clap::Parser;
 use morpheus::{
     core::{client_manager::ClientManager, server::Server, storage::InMemoryStorage},
     ws::handler::client_connected,
 };
-use clap::Parser;
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::Arc,
