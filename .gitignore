@@ -1,5 +1,6 @@
 morpheus/target
 morpheus/Cargo.lock
+morpheus/logs
 
 neo/target
 neo/Cargo.lock

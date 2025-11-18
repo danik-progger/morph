@@ -33,40 +33,43 @@ pub async fn client_connected(ws: WebSocket, client_manager: Arc<ClientManager>)
 async fn handle_message(client_id: &Uuid, msg: Message, client_manager: &Arc<ClientManager>) {
     if let Ok(text) = msg.to_str() {
         match serde_json::from_str::<ClientMessage>(text) {
-            Ok(client_message) => match client_message {
-                ClientMessage::Connect { topic } => {
-                    println!("Client {} subscribing to topic '{}'", client_id, topic);
-                    client_manager.subscribe_client_to_topic(client_id, topic);
-                }
-                ClientMessage::Message { topic, content } => {
-                    println!("Client {} sent message to topic '{}'", client_id, topic);
-                    let message = ServerMessage::Topic {
-                        id: Uuid::new_v4(),
-                        topic: topic.clone(),
-                        sender: client_id.to_string(),
+            Ok(client_message) => {
+                crate::log::middleware::log_incoming(client_id, &client_message);
+                match client_message {
+                    ClientMessage::Connect { topic } => {
+                        println!("Client {} subscribing to topic '{}'", client_id, topic);
+                        client_manager.subscribe_client_to_topic(client_id, topic);
+                    }
+                    ClientMessage::Message { topic, content } => {
+                        println!("Client {} sent message to topic '{}'", client_id, topic);
+                        let message = ServerMessage::Topic {
+                            id: Uuid::new_v4(),
+                            topic: topic.clone(),
+                            sender: client_id.to_string(),
+                            content,
+                        };
+                        // Broadcast to topic, excluding the sender
+                        client_manager
+                            .broadcast_to_topic(&topic, message, Some(*client_id))
+                            .await;
+                    }
+                    ClientMessage::ReplyToMorpheus {
+                        original_msg_id,
                         content,
-                    };
-                    // Broadcast to topic, excluding the sender
-                    client_manager
-                        .broadcast_to_topic(&topic, message, Some(*client_id))
-                        .await;
+                    } => {
+                        // For now, just print replies to the server console
+                        println!(
+                            "\n[REPLY to {} from {}]: {}",
+                            original_msg_id, client_id, content
+                        );
+                    }
+                    ClientMessage::MessageReceived { msg_id } => {
+                        client_manager
+                            .handle_message_acknowledgment(*client_id, msg_id)
+                            .await;
+                    }
                 }
-                ClientMessage::ReplyToMorpheus {
-                    original_msg_id,
-                    content,
-                } => {
-                    // For now, just print replies to the server console
-                    println!(
-                        "\n[REPLY to {} from {}]: {}",
-                        original_msg_id, client_id, content
-                    );
-                }
-                ClientMessage::MessageReceived { msg_id } => {
-                    client_manager
-                        .handle_message_acknowledgment(*client_id, msg_id)
-                        .await;
-                }
-            },
+            }
             Err(e) => {
                 eprintln!(
                     "Error deserializing message from client {}: {}",

@@ -3,24 +3,30 @@ use crate::{
     core::msg::ClientMessage,
     ws::conn::Connection,
 };
-use tokio::io::{self as tokio_io, AsyncBufReadExt, BufReader};
+use tokio::io::{AsyncBufRead, AsyncBufReadExt};
 use url::Url;
 
 /// The main client structure.
 pub struct Client {
     topic: String,
-    connection: Connection,
+    pub connection: Connection,
 }
 
 impl Client {
     /// Creates a new client and connects to the server.
-    pub async fn new(url: Url, topic: String) -> Result<Self, Box<dyn std::error::Error>> {
+    pub async fn new(
+        url: Url,
+        topic: String,
+    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let connection = Connection::connect(url).await?;
         Ok(Self { topic, connection })
     }
 
     /// Runs the main client loop.
-    pub async fn run(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn run<R: AsyncBufRead + Unpin>(
+        &mut self,
+        input_reader: &mut R,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         // Send the initial connection message
         self.connection
             .send(ClientMessage::Connect {
@@ -33,7 +39,6 @@ impl Client {
             self.topic
         ));
 
-        let mut stdin = BufReader::new(tokio_io::stdin());
         let mut input_buf = String::new();
 
         loop {
@@ -46,7 +51,7 @@ impl Client {
                     }
                 },
                 // Handle user input from the command line
-                result = stdin.read_line(&mut input_buf) => {
+                result = input_reader.read_line(&mut input_buf) => {
                     match result {
                         Ok(0) => break, // EOF
                         Ok(_) => {
@@ -70,7 +75,10 @@ impl Client {
     }
 
     /// Handles user input from the command line.
-    async fn handle_user_input(&mut self, input: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn handle_user_input(
+        &mut self,
+        input: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         match commands::parse_command(input) {
             commands::Command::Message(content) => {
                 let message = ClientMessage::Message {

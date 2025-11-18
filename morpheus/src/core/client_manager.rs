@@ -1,6 +1,9 @@
-use crate::core::{
-    msg::ServerMessage,
-    storage::{Client, Storage},
+use crate::{
+    core::{
+        msg::ServerMessage,
+        storage::{Client, Storage},
+    },
+    cli::ui,
 };
 use futures_util::{stream::SplitSink, SinkExt};
 use std::sync::Arc;
@@ -27,6 +30,7 @@ impl ClientManager {
         // This task forwards messages from the manager to the client's WebSocket connection.
         tokio::spawn(async move {
             while let Some(message) = rx.recv().await {
+                crate::log::middleware::log_outgoing(&message);
                 let msg_str = serde_json::to_string(&message).unwrap_or_else(|e| {
                     eprintln!("Failed to serialize message: {}", e);
                     // Create a temporary error message if serialization fails
@@ -121,7 +125,11 @@ impl ClientManager {
 
     /// Handles a message acknowledgment from a client.
     pub async fn handle_message_acknowledgment(&self, client_id: Uuid, msg_id: Uuid) {
-        println!("\n[SYSTEM] Message {} acknowledged by client {}.", msg_id, client_id);
+        crate::log::middleware::log_ack(&client_id, &msg_id);
+        ui::print_system_message(&format!(
+            "Message {} acknowledged by client {}.",
+            msg_id, client_id
+        ));
         // Optionally, you could send a ServerMessage::MessageAcknowledged back to the client
         // or to other interested parties here.
     }

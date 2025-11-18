@@ -1,10 +1,7 @@
-use crate::core::client::Client;
+use neo::core::client::Client;
 use clap::Parser;
 use url::Url;
-
-mod cli;
-mod core;
-mod ws;
+use tokio::io::{self, BufReader};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -43,7 +40,8 @@ async fn main() {
     }
 }
 
-async fn run_client(url: Url, topic: String) -> Result<(), Box<dyn std::error::Error>> {
+async fn run_client(url: Url, topic: String) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut client = Client::new(url, topic).await?;
-    client.run().await
+    let mut stdin = BufReader::new(io::stdin());
+    client.run(&mut stdin).await
 }

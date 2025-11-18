@@ -1,4 +1,4 @@
-use crate::{
+use morpheus::{
     core::{client_manager::ClientManager, server::Server, storage::InMemoryStorage},
     ws::handler::client_connected,
 };
@@ -7,11 +7,8 @@ use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::Arc,
 };
+use tracing::info;
 use warp::Filter;
-
-mod cli;
-mod core;
-mod ws;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -27,6 +24,8 @@ struct Args {
 
 #[tokio::main]
 async fn main() {
+    morpheus::log::middleware::init_file_logger();
+    info!("Logger initialized, starting server...");
     let args = Args::parse();
     let addr = SocketAddr::new(args.address, args.port);
 
@@ -39,7 +38,6 @@ async fn main() {
 
     let server = Server::new(client_manager.clone());
 
-    // The warp filter gets a clone of the Arc<ClientManager>.
     let ws_route = warp::path("ws")
         .and(warp::ws())
         .and(with_client_manager(client_manager.clone()))
