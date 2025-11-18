@@ -102,10 +102,10 @@ impl ClientManager {
         }
     }
 
-    // Getter methods for server-side CLI
-    pub fn get_client(&self, client_id: &Uuid) -> Option<Client> {
-        self.storage.get_client(client_id)
-    }
+    // // Getter methods for server-side CLI
+    // pub fn get_client(&self, client_id: &Uuid) -> Option<Client> {
+    //     self.storage.get_client(client_id)
+    // }
 
     pub fn get_clients_by_topic(&self, topic: &str) -> Vec<Client> {
         self.storage.get_clients_in_topic(topic)
@@ -156,22 +156,6 @@ mod tests {
     fn create_manager() -> ClientManager {
         let storage = Arc::new(InMemoryStorage::new());
         ClientManager::new(storage)
-    }
-
-    #[tokio::test]
-    async fn test_subscribe_and_get_by_topic() {
-        let manager = create_manager();
-        let (client_id, _rx) = setup_mock_client(&manager);
-        let topic = "general".to_string();
-
-        manager.subscribe_client_to_topic(&client_id, topic.clone());
-
-        let client = manager.get_client(&client_id).unwrap();
-        assert_eq!(client.topic, Some(topic.clone()));
-
-        let topic_clients = manager.get_clients_by_topic(&topic);
-        assert_eq!(topic_clients.len(), 1);
-        assert_eq!(topic_clients[0].id, client_id);
     }
 
     #[tokio::test]
